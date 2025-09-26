@@ -44,6 +44,7 @@ import MakeContributionPage from "./pages/MakeContributionPage";
 import ApplyLoanPage from "./pages/ApplyLoanPage";
 import AdminDemoPage from "./pages/AdminDemoPage";
 import NotFound from "./pages/NotFound";
+import DashboardPage from "./pages/DashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -157,7 +158,7 @@ function App() {
                   <ProtectedRoute>
                     <AppLayout>
                       <Routes>
-                        <Route path="/dashboard" element={<Index />} />
+                        <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/chamas" element={<ChamasPage />} />
                         <Route path="/available-chamas" element={<AvailableChamasPage />} />
                         <Route path="/chama/:id" element={<ChamaDetailPage />} />
