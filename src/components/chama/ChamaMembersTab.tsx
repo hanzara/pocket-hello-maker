@@ -1,67 +1,56 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  UserPlus, 
-  Search, 
-  Crown, 
-  Shield, 
-  User,
-  MoreHorizontal,
-  Mail,
-  Calendar
-} from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useMemberManagement } from '@/hooks/useMemberManagement';
+import { Users, User, Search, Filter, Shield, Star, Calendar, Phone } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useChamaMembers } from '@/hooks/useChamaMembers';
 
 interface ChamaMembersTabProps {
   chamaId: string;
-  userRole: string;
+  userRole?: string;
+  isAdmin?: boolean;
 }
 
-export const ChamaMembersTab: React.FC<ChamaMembersTabProps> = ({
-  chamaId,
-  userRole
+export const ChamaMembersTab: React.FC<ChamaMembersTabProps> = ({ 
+  chamaId, 
+  userRole = 'member',
+  isAdmin = false 
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
+  
+  const { data: members, isLoading } = useChamaMembers(chamaId);
 
-  // Fetch chama members
-  const { data: members, isLoading } = useQuery({
-    queryKey: ['chama-members', chamaId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('chama_members')
-        .select(`
-          *,
-          user_profiles(display_name, avatar_url)
-        `)
-        .eq('chama_id', chamaId)
-        .eq('is_active', true);
+  const filteredMembers = members?.filter(member => {
+    const matchesSearch = !searchQuery;
+    const matchesRole = selectedRole === 'all' || member.role === selectedRole;
+    return matchesSearch && matchesRole;
+  }) || [];
 
-      if (error) throw error;
-      return data;
-    }
-  });
+  const getRoleBadge = (role: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      admin: "default",
+      treasurer: "secondary", 
+      secretary: "outline",
+      member: "outline"
+    };
 
-  const { updateMemberRole, isUpdatingRole } = useMemberManagement(chamaId);
+    const colors: Record<string, string> = {
+      admin: "text-blue-600 bg-blue-50 border-blue-200",
+      treasurer: "text-green-600 bg-green-50 border-green-200",
+      secretary: "text-purple-600 bg-purple-50 border-purple-200",
+      member: "text-gray-600 bg-gray-50 border-gray-200"
+    };
+
+    return (
+      <Badge variant={variants[role] || "outline"} className={colors[role]}>
+        {role?.charAt(0).toUpperCase() + role?.slice(1)}
+      </Badge>
+    );
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -70,86 +59,121 @@ export const ChamaMembersTab: React.FC<ChamaMembersTabProps> = ({
     }).format(amount);
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return <Crown className="h-4 w-4 text-yellow-600" />;
-      case 'treasurer':
-        return <Shield className="h-4 w-4 text-blue-600" />;
-      default:
-        return <User className="h-4 w-4 text-gray-600" />;
-    }
+  const getInitials = (name: string) => {
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase() || '??';
   };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'treasurer':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
-
-  const filteredMembers = members?.filter(member => {
-    const matchesSearch = !searchQuery || 
-      member.user_profiles?.display_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = selectedRole === 'all' || member.role === selectedRole;
-    return matchesSearch && matchesRole;
-  }) || [];
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Members ({filteredMembers.length})</h3>
+          <h3 className="text-lg font-semibold text-foreground">Members</h3>
           <p className="text-sm text-muted-foreground">
-            Manage chama members and their roles
+            {members?.length || 0} total members
           </p>
         </div>
-        
-        {(userRole === 'admin' || userRole === 'treasurer') && (
-          <Button className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
+        {isAdmin && (
+          <Button>
             Invite Members
           </Button>
         )}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            type="text"
             placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
-        
         <Select value={selectedRole} onValueChange={setSelectedRole}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by role" />
+          <SelectTrigger className="w-[180px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Roles</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="treasurer">Treasurer</SelectItem>
+            <SelectItem value="secretary">Secretary</SelectItem>
             <SelectItem value="member">Member</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Admins</p>
+                <p className="text-lg font-semibold">
+                  {members?.filter(m => m.role === 'admin').length || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-green-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Treasurers</p>
+                <p className="text-lg font-semibold">
+                  {members?.filter(m => m.role === 'treasurer').length || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-lg font-semibold">
+                  {members?.filter(m => m.is_active).length || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-orange-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">This Month</p>
+                <p className="text-lg font-semibold">
+                  {members?.filter(m => 
+                    m.last_contribution_date && 
+                    new Date(m.last_contribution_date).getMonth() === new Date().getMonth()
+                  ).length || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Members List */}
@@ -159,81 +183,47 @@ export const ChamaMembersTab: React.FC<ChamaMembersTabProps> = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  {/* Avatar */}
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback>
-                      {member.user_profiles?.display_name?.charAt(0)?.toUpperCase() || 'M'}
+                  <Avatar>
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {getInitials('Member')}
                     </AvatarFallback>
                   </Avatar>
-
-                  {/* Member Info */}
-                  <div className="flex-1">
+                  
+                  <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-foreground">
-                        {member.user_profiles?.display_name || 'Unknown Member'}
-                      </h4>
-                      <div className="flex items-center gap-1">
-                        {getRoleIcon(member.role)}
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${getRoleBadgeColor(member.role)}`}
-                        >
-                          {member.role}
-                        </Badge>
-                      </div>
+                      <h4 className="font-medium text-foreground">Member</h4>
+                      {getRoleBadge(member.role)}
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        Joined {new Date(member.joined_at).toLocaleDateString()}
+                        <span>Joined {new Date(member.joined_at).toLocaleDateString()}</span>
                       </div>
-                      <div>
-                        Total: {formatCurrency(member.total_contributed || 0)}
-                      </div>
-                      <div>
-                        Last: {member.last_contribution_date ? 
-                          new Date(member.last_contribution_date).toLocaleDateString() : 
-                          'None'
-                        }
-                      </div>
+                      {member.total_contributed > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span>Contributed: {formatCurrency(member.total_contributed)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                {(userRole === 'admin' && member.role !== 'admin') && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => updateMemberRole({ 
-                          memberId: member.id, 
-                          newRole: 'treasurer' 
-                        })}
-                        disabled={member.role === 'treasurer' || isUpdatingRole}
-                      >
-                        Make Treasurer
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => updateMemberRole({ 
-                          memberId: member.id, 
-                          newRole: 'member' 
-                        })}
-                        disabled={member.role === 'member' || isUpdatingRole}
-                      >
-                        Make Member
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        Remove Member
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                <div className="flex items-center gap-2">
+                  {member.last_contribution_date && (
+                    <div className="text-right text-xs text-muted-foreground">
+                      <p>Last contribution</p>
+                      <p>{new Date(member.last_contribution_date).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  
+                  {isAdmin && (
+                    <Button variant="outline" size="sm">
+                      Manage
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

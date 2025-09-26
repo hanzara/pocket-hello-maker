@@ -52,9 +52,7 @@ export const ContributeModal: React.FC<ContributeModalProps> = ({
       await contributeToChama({
         chama_id: chamaId,
         amount,
-        description: formData.notes || `Contribution to ${chamaName}`,
-        payment_method: formData.payment_method,
-        payment_reference: formData.payment_reference || undefined
+        description: formData.notes || `Contribution to ${chamaName}`
       });
 
       onClose();
