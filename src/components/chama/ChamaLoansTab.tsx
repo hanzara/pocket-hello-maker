@@ -247,8 +247,7 @@ export const ChamaLoansTab: React.FC<ChamaLoansTabProps> = ({
         isOpen={showLoanModal}
         onClose={() => setShowLoanModal(false)}
         chamaId={chamaId}
-        onSubmit={applyForLoan}
-        isSubmitting={isApplying}
+        chamaData={{ name: "Chama" }}
       />
     </div>
   );
