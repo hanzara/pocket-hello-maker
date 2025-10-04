@@ -1,0 +1,19 @@
+project_id = "yrywjbxqlqpdzrudfupm"
+
+[functions.ai-finance-chat]
+verify_jwt = true
+
+[functions.wifi-purchase-package]
+verify_jwt = true
+
+[functions.wifi-wallet-topup]
+verify_jwt = true
+
+[functions.wifi-extend-session]
+verify_jwt = true
+
+[functions.pesapal-integration]
+verify_jwt = false
+
+[functions.pesapal-callback]
+verify_jwt = false
