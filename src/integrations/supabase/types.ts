@@ -4275,6 +4275,69 @@ export type Database = {
           },
         ]
       }
+      pesapal_transactions: {
+        Row: {
+          amount: number
+          callback_data: Json | null
+          confirmation_code: string | null
+          created_at: string | null
+          currency: string | null
+          email: string | null
+          id: string
+          merchant_reference: string
+          order_tracking_id: string | null
+          payment_account: string | null
+          payment_method: string | null
+          payment_status_description: string | null
+          phone_number: string | null
+          status: string | null
+          transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          callback_data?: Json | null
+          confirmation_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string
+          merchant_reference: string
+          order_tracking_id?: string | null
+          payment_account?: string | null
+          payment_method?: string | null
+          payment_status_description?: string | null
+          phone_number?: string | null
+          status?: string | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          callback_data?: Json | null
+          confirmation_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string
+          merchant_reference?: string
+          order_tracking_id?: string | null
+          payment_account?: string | null
+          payment_method?: string | null
+          payment_status_description?: string | null
+          phone_number?: string | null
+          status?: string | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       portal_access_logs: {
         Row: {
           action: string
