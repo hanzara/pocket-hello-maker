@@ -52,7 +52,7 @@ export const useChamaLoans = (chamaId: string) => {
         .from('chama_loans')
         .select(`
           *,
-          chama_members!inner(
+          chama_members!chama_loans_borrower_id_fkey(
             id,
             user_id
           )
