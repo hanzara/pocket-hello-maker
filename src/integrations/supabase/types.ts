@@ -143,6 +143,39 @@ export type Database = {
         }
         Relationships: []
       }
+      github_config: {
+        Row: {
+          base_branch: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          owner: string
+          repo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_branch?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          owner: string
+          repo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_branch?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          owner?: string
+          repo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lesson_comments: {
         Row: {
           comment: string

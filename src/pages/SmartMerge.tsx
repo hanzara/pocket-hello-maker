@@ -7,6 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   CheckCircle2,
   XCircle,
@@ -21,7 +24,8 @@ import {
   AlertCircle,
   Brain,
   Zap,
-  Settings
+  Settings,
+  Github
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,16 +49,81 @@ interface Mutation {
   mutation_tests: any[];
 }
 
+interface GitHubConfig {
+  owner: string;
+  repo: string;
+  base_branch: string;
+}
+
 export default function SmartMerge() {
   const [searchParams] = useSearchParams();
   const [mutations, setMutations] = useState<Mutation[]>([]);
   const [selectedMutation, setSelectedMutation] = useState<Mutation | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoTrustMode, setAutoTrustMode] = useState(false);
+  const [githubConfig, setGithubConfig] = useState<GitHubConfig | null>(null);
+  const [showGitHubDialog, setShowGitHubDialog] = useState(false);
+  const [tempGitHubConfig, setTempGitHubConfig] = useState({ owner: '', repo: '', base_branch: 'main' });
 
   useEffect(() => {
     fetchMutations();
+    fetchGitHubConfig();
   }, []);
+
+  const fetchGitHubConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('github_config')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setGithubConfig(data);
+        setTempGitHubConfig({
+          owner: data.owner,
+          repo: data.repo,
+          base_branch: data.base_branch
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching GitHub config:', error);
+    }
+  };
+
+  const saveGitHubConfig = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Deactivate existing configs
+      await supabase
+        .from('github_config')
+        .update({ is_active: false })
+        .eq('user_id', user.id);
+
+      // Insert new config
+      const { error } = await supabase
+        .from('github_config')
+        .insert({
+          user_id: user.id,
+          owner: tempGitHubConfig.owner,
+          repo: tempGitHubConfig.repo,
+          base_branch: tempGitHubConfig.base_branch,
+          is_active: true
+        });
+
+      if (error) throw error;
+
+      setGithubConfig(tempGitHubConfig);
+      setShowGitHubDialog(false);
+      toast.success('GitHub configuration saved');
+    } catch (error) {
+      console.error('Error saving GitHub config:', error);
+      toast.error('Failed to save GitHub configuration');
+    }
+  };
 
   const fetchMutations = async () => {
     try {
@@ -109,7 +178,33 @@ export default function SmartMerge() {
           metadata: { approved_at: new Date().toISOString() }
         });
 
-      toast.success('Mutation approved successfully');
+      // Create GitHub PR if config is set
+      if (githubConfig) {
+        try {
+          const { data: prData, error: prError } = await supabase.functions.invoke('create-github-pr', {
+            body: {
+              owner: githubConfig.owner,
+              repo: githubConfig.repo,
+              title: `${selectedMutation.mutation_type}: ${selectedMutation.description}`,
+              description: selectedMutation.explain || selectedMutation.description,
+              diff: selectedMutation.diff || `Original:\n${selectedMutation.original_code}\n\nMutated:\n${selectedMutation.mutated_code}`,
+              baseBranch: githubConfig.base_branch,
+            }
+          });
+
+          if (prError) throw prError;
+          
+          if (prData?.success) {
+            toast.success(`Mutation approved and PR created: ${prData.pr_url}`);
+          }
+        } catch (prError) {
+          console.error('Error creating GitHub PR:', prError);
+          toast.warning('Mutation approved but PR creation failed');
+        }
+      } else {
+        toast.success('Mutation approved successfully');
+      }
+
       fetchMutations();
     } catch (error) {
       console.error('Error approving mutation:', error);
@@ -225,6 +320,14 @@ export default function SmartMerge() {
               SmartMerge 🤖
             </h1>
             <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant={githubConfig ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setShowGitHubDialog(true)}
+              >
+                <Github className="h-4 w-4 mr-2" />
+                {githubConfig ? `${githubConfig.owner}/${githubConfig.repo}` : 'Configure GitHub'}
+              </Button>
               <Button
                 variant={autoTrustMode ? "default" : "outline"}
                 size="sm"
@@ -618,6 +721,54 @@ export default function SmartMerge() {
             )}
           </main>
         </div>
+
+        <Dialog open={showGitHubDialog} onOpenChange={setShowGitHubDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Configure GitHub Integration</DialogTitle>
+              <DialogDescription>
+                Connect your GitHub repository to automatically create pull requests when mutations are approved.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="owner">Repository Owner</Label>
+                <Input
+                  id="owner"
+                  placeholder="username or organization"
+                  value={tempGitHubConfig.owner}
+                  onChange={(e) => setTempGitHubConfig({ ...tempGitHubConfig, owner: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="repo">Repository Name</Label>
+                <Input
+                  id="repo"
+                  placeholder="my-awesome-repo"
+                  value={tempGitHubConfig.repo}
+                  onChange={(e) => setTempGitHubConfig({ ...tempGitHubConfig, repo: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="branch">Base Branch</Label>
+                <Input
+                  id="branch"
+                  placeholder="main"
+                  value={tempGitHubConfig.base_branch}
+                  onChange={(e) => setTempGitHubConfig({ ...tempGitHubConfig, base_branch: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowGitHubDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveGitHubConfig}>
+                Save Configuration
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );
