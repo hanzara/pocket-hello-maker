@@ -37,8 +37,8 @@ const Navigation = () => {
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
                     className={cn(
-                      "gap-2",
-                      isActive && "bg-primary text-primary-foreground"
+                      "gap-2 text-primary hover:text-primary hover:bg-primary/10",
+                      isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                     )}
                   >
                     <Icon className="w-4 h-4" />
