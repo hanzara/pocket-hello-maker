@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Home, Send, TrendingUp, Settings, User, Bell, Plus, QrCode, History, CreditCard, Link, Users, BarChart3, DollarSign, Clock, CheckCircle, ArrowLeft, Search, HelpCircle, Code, Shield, Phone, MessageCircle, ChevronRight, Menu, X, Wallet, FileText, AlertCircle, Key, Webhook, BookOpen, Zap } from 'lucide-react';
 import BulkPayoutUI from '@/components/BulkPayoutUI';
 import PaymentLinkUI from '@/components/PaymentLinkUI';
+import GlobalQRPayment from '@/components/GlobalQRPayment';
 
 const ChainFlowMobile = () => {
   const [currentTab, setCurrentTab] = useState('home');
@@ -927,13 +928,7 @@ const ChainFlowMobile = () => {
         );
       
       case 'scan':
-        return (
-          <>
-            {renderStatusBar()}
-            {renderHeader('Scan QR Code', true)}
-            {renderDetailScreen('QR Scanner', 'Point your camera at a QR code to scan.')}
-          </>
-        );
+        return <GlobalQRPayment />;
       
       case 'bulk':
         return <BulkPayoutUI onBack={() => setCurrentScreen('main')} />;
