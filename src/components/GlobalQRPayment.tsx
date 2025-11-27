@@ -228,8 +228,8 @@ const GlobalQRPayment = () => {
       network: 'emvco'
     };
 
-    const qrImage = generateQRCode(qrData);
-    setGeneratedQR({ ...qrData, image: qrImage });
+    // Set data first without image, then generate after mount
+    setGeneratedQR({ ...qrData, image: null });
     setView('qr-display');
   };
 
@@ -252,6 +252,14 @@ const GlobalQRPayment = () => {
   useEffect(() => {
     return () => stopCamera();
   }, []);
+
+  // Generate QR image when qr-display view mounts
+  useEffect(() => {
+    if (view === 'qr-display' && generatedQR && !generatedQR.image && qrCanvasRef.current) {
+      const qrImage = generateQRCode(generatedQR);
+      setGeneratedQR(prev => prev ? { ...prev, image: qrImage } : null);
+    }
+  }, [view, generatedQR]);
 
   if (mode === 'select') {
     return (
